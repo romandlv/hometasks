@@ -40,19 +40,20 @@ def str_to_num_transform(x): # занимается преобразование
         x = float(num_transform_list[0])
     return x
 
-def list_iterator(lst, n): # эта функция берет список подготовленный для деления по шесть элементов для того, чтобы создать
-        return [lst[i:i + n] for i in range(0, len(lst), n)] # новый список где каждый элемент это спискок из 6 элементов первоначального списка
+def list_iterator(lst, n): # эта функция берет список подготовленный для деления по заданному количеству элементов для того, чтобы создать
+        return [lst[i:i + n] for i in range(0, len(lst), n)] # новый список где каждый элемент это спискок из этого количества элементов первоначального списка
 
 # + + + переменные
 internet = False
 rejim_vibran = False
 rejim_online = False
 reprovinternet = "*"
+flag_gk_bez_obiema = False
 chek_prav_option1 = False
 chek_prav_option2 = False
 antidemp_koef = 0.25
 specifikaciya = []
-okopfus = "????????"
+okopfus = "???????"
 telef_org = None
 ogrnip_org = None
 kpp_org = None
@@ -183,7 +184,7 @@ while rejim_vibran != True:
 print(new_str)
 print("Итак, приступим.")
 time.sleep(delayer)
-print("Первое, что мне понадобится, это номер закупки. Например: ????????????????????? ")
+print("Первое, что мне понадобится, это номер закупки. Например: ???????????????????? ")
 
 while chek_prav_option1 != True:
     nomer_zakup = input("Введите его здесь: ").strip()
@@ -197,16 +198,34 @@ while chek_prav_option1 != True:
 # Запросы к страничке карточки электронного аукциона после одобрения варианта
 
 # object_zakup = object_zakup
+cena_maksimal = html.find("span", text=re.compile("аксимальн")).next_element.next_element.next_element.text.strip()
+if html.find("span", text=re.compile("евозможно определить объем")) != None:
+    flag_gk_bez_obiema = True
+    c_ed_gk1 = html.find('span', text=re.compile("альная сумма цен единиц")).next_element.\
+        next_element.next_element.get_text().strip()
+    c_ed_gk_lst = c_ed_gk1.split(" ")
+    c_ed_gk_lst = list(filter(None, c_ed_gk_lst))
+    if len(c_ed_gk_lst) >= 3:
+        print("ОШИБКА!!! Проверить условие")  # 1111111111111111111111111111111111111111111111111111111111111111
+    else:
+        c_ed_gk1 = c_ed_gk_lst[0]
+    if "\xa0" or "\n" in c_ed_gk1:
+        if "\xa0" and "\n":
+            c_ed_gk = re.sub("[\xa0|\n]", "", c_ed_gk1)
+        if "\n" in c_ed_gk1:
+            c_ed_gk = re.sub("[\n]", "", c_ed_gk1)
+        if "\xa0" in c_ed_gk1:
+            c_ed_gk = re.sub("[\xa0]", "", c_ed_gk1)
+    else:
+        c_ed_gk = c_ed_gk1
+
 ikz = html.find(text=re.compile("ИКЗ")).next_element.next_element.text.strip()
 smp_preimuzhj = html.find("span", text=re.compile("ч. 3 ст. 30 Закона"))
-cena_maksimal = html.find("span", text=re.compile("аксимальная")).next_element.next_element.next_element.text.strip()
 obespech_proc = html.find("span", text=re.compile("азмер обеспечения исполнения")).next_element.next_element.next_element.text.strip()
 obespech_proc = int(obespech_proc.replace(" ", "").replace("%", "").strip())
 kbk = html.find("div", id=re.compile("budgetTableInnerHtml")).find("table", class_="blockInfo__table tableBlock").find("td", class_="table__row-item normal-text tableBlock__col_left").get_text().strip()
 
-
 # После чего переход к страничке результатов торгов и запросы к ней
-
 url_sub = f'https://zakupki.gov.ru/epz/order/notice/ea20/view/supplier-results.html?regNumber={nomer_zakup}'
 r_sub = rq.get(url_sub, timeout=10, headers=headers)
 html_sub = bs(r_sub.content, "html.parser")
@@ -220,7 +239,7 @@ else:
         .find("table", class_="blockInfo__table tableBlock").find("tbody").find("td") \
         .next_element.next_element.next_element.next_element.next_element.next_element.text.strip()
 
-print("""Теперь, пожалуйста, введите ИНН контрагента, например: > ???????? <,
+print("""Теперь, пожалуйста, введите ИНН контрагента, например: > ????????? <,
 т.к. я не могу получить данные защищенные ЭЦП изнутри сайта РТС.
 Пока...
 """)
@@ -303,7 +322,7 @@ time.sleep(delayer)
 print("Начнем с подписантов:")
 time.sleep(delayer)
 print(new_str)
-podpisant1 = "в лице ????????????????????????????????????????????????????"
+podpisant1 = "в лице ??????????????????????????????????????????????????????????????????"
 print(f"""Формулировка:
 >>> {podpisant1} <<<
     является верной на текущий момент?
@@ -357,25 +376,28 @@ time.sleep(delayer)
 print("Далее - приступим к формированию Цены контракта.")
 print(new_str)
 time.sleep(delayer)
-print("Подскажите, будет ли увеличение цены контракта до НМЦК?")
-time.sleep(delayer)
-print("""
-В ответ введите один из следующих символов:
-        + (что значит - да, доводим до НМЦК)
-        - (что значит - нет, не доводим)
-        * (что значит - доводим, но частично (сумма меняется в пределах НМЦК)
-        """)
-ck_vbr = input("Ваш выбор: ")
-
-if ck_vbr == "-":
-    ck = ck_predv
-elif ck_vbr == "*":
-    ck = input("Тогда введите, пожалуйста, цену контракта (числом без пробелов с копейками после запятой): ")  # ввод чисел без пробелов проблема
-elif ck_vbr == "+":
-    ck = cena_maksimal
+if flag_gk_bez_obiema == True:
+    ck = cena_maksimal  # ck predv dla gk c neopr ob'emom ????
 else:
-    ck = 0
-    print("Тут мог быть цикл")
+    print("Подскажите, будет ли увеличение цены контракта до НМЦК?")
+    time.sleep(delayer)
+    print("""
+    В ответ введите один из следующих символов:
+            + (что значит - да, доводим до НМЦК)
+            - (что значит - нет, не доводим)
+            * (что значит - доводим, но частично (сумма меняется в пределах НМЦК)
+            """)
+    ck_vbr = input("Ваш выбор: ").strip()
+
+    if ck_vbr == "-":
+        ck = ck_predv
+    elif ck_vbr == "*":
+        ck = input("Тогда введите, пожалуйста, цену контракта (числом без пробелов с копейками после запятой): ")  # ввод чисел без пробелов проблема
+    elif ck_vbr == "+":
+        ck = cena_maksimal
+    else:
+        ck = 0
+        print("Тут мог быть цикл")
 
 # начало расчета суммы контракта и спецификации
 
@@ -407,7 +429,11 @@ elif nds_vbr == "+":
 else:
     print("Что это значит? Попробуйте еще раз...")  # написать цикл
 
-koefauk = ck_predv / cena_maksimal
+if flag_gk_bez_obiema == True:
+    c_ed_gk = str_to_num_transform(c_ed_gk)
+    koefauk = ck_predv / c_ed_gk
+else:
+    koefauk = ck_predv / cena_maksimal
 obespech_gk = ck * (obespech_proc / 100)
 obespech_gk = round(obespech_gk, 2)
 print(new_str)
